@@ -1,0 +1,64 @@
+#### Study the asymmetry of the edges in the specialty referral matrix. 
+
+We are studying a small graph, where each node is a primary specialty (e.g. PREVENTATIVE MEDICINE).  Then, an "edge" from one specialty to another specialty represents a referral from a doctor of the first type, to a doctor of the second type.  In a sample of 100k edges, there were 74 unique primary specialties. To accumulate edge strength, I used "two logs" as was done in the zip code graph.  You can [see my code here](code/smallSpecialtyReferralGraph.R).  You can download the data from the following url.
+```{r}
+rm(list = ls())
+library(Matrix)
+library(igraph)
+load(url("http://pages.stat.wisc.edu/~karlrohe/netsci/data/specialty.RData"))
+A = as.matrix(A) # it used to be a sparse matrix "dgCMatrix", even though it isn't that sparse. 
+rs = rowSums(A); cs = colSums(A)
+plot(rs,cs, xlab= "out degree", ylab = "in degree", col = "white")
+text(rs, cs, labels=colnames(A), cex = .5)
+ors = order(rs)
+cbind(colnames(A)[ors], round(rs[ors],1))
+```
+
+Are edges reciprocal? 
+```{r}
+plot(A,t(A), main = "non-reciprocated edges at low degrees.")
+
+bA = matrix(0, nrow = nrow(A), ncol = ncol(A))
+bA[A>.5] = 1
+nonrecA = bA*(1-t(bA))
+nonrecEdges = which(nonrecA == 1, arr.ind = T)
+# the first column makes some referrals to the second column, but it is much less likely in the other direction.
+cbind(colnames(A)[nonrecEdges[,1]], colnames(A)[nonrecEdges[,2]])
+```
+
+What is the page rank? Imagine a Markov chain on the specialties.  You get randomly referred around this network.  Where are you likely to land?
+```{r}
+g= graph.adjacency(A,mode= "directed", weighted = T)
+pr = page.rank(g,directed = T)
+sort(pr$vec)
+```
+
+Before reading the next steps, you might read the [lecture notes on the eigendecomposition and the svd](eigenSVDlecture.pdf).  
+The algorithm "di-sim" explored here is described in [this paper](http://arxiv.org/abs/1204.2296). 
+
+```{r}
+Drow = Diagonal(n = nrow(A), 1/sqrt(rs + mean(rs)))
+Dcol = Diagonal(n = ncol(A), 1/sqrt(cs + mean(cs)))
+L = Drow%*%A%*%Dcol
+s = svd(L)
+plot(s$d[-1])
+```
+
+```{r}
+k = 3
+u = s$u[,1:k]; v = s$v[,1:k]
+n = nrow(A)
+un = t(apply(u,1, function(x) return(x/sqrt(sum(x^2)+1/n))))
+vn = t(apply(v,1, function(x) return(x/sqrt(sum(x^2)+1/n))))
+km = kmeans(rbind(un,vn), centers = k,nstart = 100)
+uclust = km$clust[1:n]
+vclust = km$clust[-(1:n)]
+table(uclust,vclust)
+```
+If this network was highly symmetric (i.e. reciprocal) what would that table look like?
+```{r}
+nm = colnames(A)
+nm[uclust == 1]
+nm[vclust == 1]
+```
+Note that $u$ corresponds to sending patterns and $v$ corresponds to receiving patterns.

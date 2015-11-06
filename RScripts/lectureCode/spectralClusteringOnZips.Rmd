@@ -1,0 +1,320 @@
+### How do zip codes relate to one another?
+
+First, load the graph on zip codes.  Read the [source here](http://pages.stat.wisc.edu/~karlrohe/netsci/data/makeZipA.R).
+```{r}
+library(Matrix)
+library(igraph)
+library(data.table)
+set.seed(1)
+rm(list = ls())
+load(url("http://pages.stat.wisc.edu/~karlrohe/netsci/data/zipA.RData"))
+dim(A)
+str(A)
+```
+This loads an adjacency matrix (a sparse Matrix).  Each row/column is named by the zip code.  Each element of the adjacency matrix is the log of the sum of the log of the weights (that is a mouthful!).
+
+Create an igraph.  Get a connected component.
+
+```{r}
+g = graph.adjacency(A,mode = "directed", weighted = T)
+clust = clusters(g, mode = "weak")
+table(clust$csize)
+core = graph.coreness(g, mode = "all")
+hist(core)
+g = induced.subgraph(g,vids = V(g)[core>=5])
+clust = clusters(g, mode = "weak")
+table(clust$csize)
+A = get.adjacency(g)
+```
+
+Plot an eigenvector.  OMG, PLEASE USE A SPARSE SOLVER!!!
+
+```{r}
+library(rARPACK)
+library(zipcode)
+vec = eigs(A,k = 50)  # So fast!
+
+data(zipcode); zipcode = as.data.table(zipcode); setkey(zipcode, zip)
+loc = zipcode[rownames(A), c("longitude", "latitude"), with  =F]
+for(i in 2:10) plot(loc, col=as.factor(vec$vec[,i]>0),
+                    xlim = c(-125, -65), ylim = c(24, 50), main = i)
+
+```
+
+There are several ways of evaluating the "goodness" of a partition.  [Normalized cuts](http://www.cs.berkeley.edu/~malik/papers/SM-ncut.pdf), [Newman-Girvan modularity](http://journals.aps.org/pre/pdf/10.1103/PhysRevE.69.026113), and likelihood formulations.  For two sets of nodes $S_1, S_2$ and the adjacency matrix $A$, define $A(S_1, S_2)$ to be the sum over the submatrix of $A$ created by retaining the rows in $S_1$ and the columns in $S_2$.  For example, if $S_2 = S_1^c$, then $A(S_1, S_2) = cut(S_1)$, i.e. the number of edges that must be cut to remove vertices $S_1$ from the graph. Also, for the entire nodes set $V$, $A(S_1, V) = vol(S_1)$, i.e. the sum of the node degrees in set $S_1$. For a partition defined by $S$ and $S^c$, the value of the normalized cut is
+$$ncut(S) = \frac{A(S,S^c)}{A(S,V)} + \frac{A(S,S^c)}{A(S^c,V)}.$$
+The value of the Newman-Girvan modularity is 
+$$ngm(S) = \frac{A(S,S)}{A(V,V)} - \left(\frac{A(S,V)}{A(V,V)}\right)^2 + \frac{A(S^c,S^c)}{A(V,V)} - \left(\frac{A(S^c,V)}{A(V,V)}\right)^2.$$
+A good partitition will have a small value of $ncut$ and a large value of $ngm$.  
+
+For likelihood formulations, we need a statistical model.  The Stochastic Blockmodel is a [classical model](http://hbanaszak.mjr.uw.edu.pl/TempTxt/PDF/HollandEtAl_1983_StochasticBlockmodelsFirstSteps.pdf) with much renewed interest in recent years.  This model presumes that each node is assigned to a block (i.e. cluster).  Then, conditional on this assignment, nodes connected independently with probabilities which only depend on their block label.  The log likelihood of the partition $S,S^c$ is 
+$$2 l_{SBM}(S) = |S|^2 \tau\left(\frac{A(S,S)}{|S|^2}\right) + |S^c|^2 \tau\left(\frac{A(S^c,S^c)}{|S^c|^2}\right) + 2 |S||S^c|\tau\left(\frac{A(S,S^c)}{|S||S^c|}\right)$$
+for $\tau(x) = x \log(x) + (1-x) \log(1-x)$. See [Bickel and Chen](http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2795514/) for more details.
+
+Each of these three functions is NP hard to optimize over partitions.  So, we will estimate partitions via spectral clustering (or other computationally tractable algorithms).  Then, we can evaluate the "goodness" of the partition with these functions.  If one is truely interested in optimizing one of these measures of goodness, then initialize a greedy algorithm with spectral clustering.
+
+The next bit of code investigates whether any of the cuts from spectral clustering version 0 (using eigenvectors 2 through 50) are highly unbalanced. 
+```{r}
+bal = apply(vec$vec[,-1],2, function(x) return(min(table(x>0))))/nrow(A)
+plot(bal)
+
+```
+No cut is horribly unbalanced.  Now, compute the various metrics for each of the 49 different cuts.
+
+```{r}
+mod = rep(NA,49)
+for(i in 2:50) mod[i-1]= (modularity(g, as.numeric(as.factor(vec$vec[,i]>0))))
+plot(mod)
+plot(bal, mod, col = grey(seq(.2,.8,len = 49)), pch  = 19)
+lines(bal, mod)
+
+```
+Interestingly, the second eigenvector does not give the best cut in terms of modularity.  However, as measured by normalized cut, the second eigenvector does give the best cut. 
+
+
+```{r}
+cut =function(A,x,y){
+  # x and y are length nrow(A) and ncol(A) T/F vectors. 
+  return(sum(A[x,y]))
+  }
+ncut =function(A,x){
+  deg = rowSums(A)
+  return(cut(A,x,!x)*(1/sum(deg[x]) + 1/sum(deg[!x])))
+  }
+
+nc = rep(NA, 49)
+for(i in 2:50) nc[i-1]= ncut(A, vec$vec[,i]>0)
+
+plot(nc)
+plot(bal, nc, col = grey(seq(.2,.8,len = 49)), pch  = 19)
+lines(bal, nc)
+```
+
+The next plots, inspect the likelihood of each cut under the standard Stochastic Blockmodel.
+
+```{r}
+tau = function(p) return(p*log(p) + (1-p)*log(1-p))
+likEl = function(A,x,y) return(sum(x)*sum(y)*tau(cut(A,x,y)/(sum(x)*sum(y))))
+lik = function(A,x) return(likEl(A,x,x) + likEl(A,!x,!x) + 2*likEl(A,x,!x))
+
+li = rep(NA, 49)
+for(i in 2:50) li[i-1]= lik(A, vec$vec[,i]>0)
+
+plot(li, type = 'l', pch = 19)
+plot(bal, li, col = grey(seq(.2,.8,len = 49)), pch  = 19)
+lines(bal, li)
+```
+
+These three measures of goodness are highly correlated, except for the cuts that are highly unbalanced.  These cuts are plotted in red below.  For these cuts, Newman Girvan modularity rate these as poor to middling cuts, while ncut and likelihood rate them highly.  
+
+```{r}
+plot(as.data.frame(cbind(mod,negNC = -nc,li)), col = as.factor(bal<.2), pch = 19)
+```
+
+The above exercise has looked at several partitions into two groups.  Clearly, there are lots of "good" such partitions.  Can we combine them into a partition into several groups?  Spectral clustering version 1 runs k-means on the leading k eigenvectors of the adjacency matrix.  
+
+```{r}
+spectralClustering1 = function(g,k){
+  # g is an igraph.  k is the desired number of clusters. 
+  # this returns results from spectralClustering version 1
+  A = get.adjacency(g)
+  vec = eigs(A,k)  
+  return(kmeans(vec$vec, k, nstart = 20)) 
+  }
+loc = zipcode[rownames(A), c("longitude", "latitude"), with  =F]
+spec = spectralClustering1(g, 10)
+sort(table(spec$cluster))
+plot(loc, col=as.factor(spec$cluster),
+     xlim = c(-125, -65), ylim = c(24, 50))
+```
+While each vector provided a good cut (when using thresholding at zero to determine a partition), running k-means really messes things up!  This is a super unbalanced partition. The vast majority of nodes are contained in one cluster. The second largest cluster contains less than 3% of the nodes in the graph! This type of performances is not uncommon.  
+
+The vectors are highly kurtotic (i.e. large 4th moments, relative to 2nd moments).    
+```{r}
+boxplot(vec$vec[,2:4])
+hist(vec$vec[,2], breaks = 100)
+qqnorm(sort(scale(vec$vec[,2])), type = 'l')
+abline(0,1)
+```
+The reason that the eigenvectors of $A$ are highly kurtotic  is that the these eigenvectors "focus their energy" proportional to node degree and node degree has a heavy tail (empirical regularity).
+
+
+```{r}
+plot(rowSums(A), vec$vec[,3], xlab = "node degree", ylab = "3rd eigenvector of A")
+```
+
+To improve on this version of spectral clustering, we could normalize by the node degree.  Define $D$ as a diagonal matrix with $D_{i,i} = degree(i)$ (i.e. the row sums of $A$).  Define $L_{rw} D^{-1} A$ or its relative $L_{sym} = D^{-1/2}AD^{-1/2}$. Exercise: show these relatives have the same eigenvalues and that if $x$ is an eigenvector of $L_{sym}$, then $D^{-1/2}x$ is a (right) eigenvector of $L_{rw}$.  
+
+Recall that we removed the low core nodes?  For illustration, let's put them back in.
+```{r}
+Acore = A 
+load(url("http://pages.stat.wisc.edu/~karlrohe/netsci/data/zipA.RData"))
+# Di = Diagonal(nrow(A), 1/rowSums(A))
+# Lrw = Di%*%A
+D2 = Diagonal(nrow(A), 1/sqrt(rowSums(A)))
+Lsym = D2%*%A%*%D2
+# erw = eigs(Lrw,50)
+esy = eigs(Lsym,10)
+# qqnorm(sort(scale(erw$vec[,4])), type = 'l')
+qqnorm(sort(scale(esy$vec[,3])), type = 'l')
+abline(0,1)
+plot(esy$vec[,3])
+plot(rowSums(A), D2%*%esy$vec[,3])
+```
+
+Now the low degree nodes get all the "energy"! If you were to run k-means on these vectors, you would (again) get highly unbalanced clusters (e.g. one cluster contains 99% of the nodes). 
+
+The next bit performs the same analysis on the  5-core of the graph.
+
+```{r}
+A = Acore
+D2 = Diagonal(nrow(A), 1/sqrt(rowSums(A)))
+Lsym = D2%*%A%*%D2
+esy = eigs(Lsym,10)
+qqnorm(sort(scale(esy$vec[,3])), type = 'l')
+abline(0,1)
+#install.packages("grDevices")
+library(grDevices)
+plot(rowSums(A), esy$vec[,3], main = "L_{sym}")
+plot(rowSums(A), D2%*%esy$vec[,3], main = "L_{rw}")
+```
+After taking the k-core and normalizing by the row sum, the "energy" in the eigenvectors is no longer correlated with the degree of the node.
+
+Why does taking the k-core fix the problem?  Here is one explaination of the "reason".  When the low degree nodes are included, $D$ is exceedingly [ill-conditioned](https://en.wikipedia.org/wiki/Condition_number#Matrices) (exercise: compute the condition numer of $D$ interms of properties of the graph and use an empirical regularity of graphs to describe why $D$ is typically poorly conditioned).  So, $D$ is ill-conditioned.  {Inverting} and then {multiplying by} an ill-conditioned matrix is an unstable numerical operation.  Here, it also creates unstable statistical properties.  
+
+On the 5-core, k-means finds much more balanced clusters. 
+
+```{r}
+spec = kmeans(esy$vectors,10)
+sort(table(spec$cluster))
+```
+
+Instead of removing nodes to improve the conditioning of $D^{-1}$, there are two alternative approaches.  Let $\tau$ be a regularization parameter. For example, $\tau =1$ or $\tau$ could be the mean degree of the nodes; peeking ahead, results are pretty insensitive to choices in this range.  In the first approach, [this paper](http://arxiv.org/abs/1207.2340) suggests adding $\tau/n$ to each element of the adjacency matrix.  Then, compute $D$ with this new adjacency matrix.  This was studied more formally [here](http://arxiv.org/abs/1312.1733).  The [second approach](http://cseweb.ucsd.edu/~atsiatas/planted.pdf) is to add $\tau$ to each diagonal element of $D$.  This was extended a bit in [this paper](http://papers.nips.cc/paper/5099-regularized-spectral-clustering-under-the-degree-corrected-stochastic-blockmodel.pdf).  Note that both approaches lead to increasing each diagonal element of $D$ by $\tau$.  The first approach also "perturbs" the elements of $A$.  There are slight algebraic advantages/disadvantages to these two approaches.  However, it seems that the most important thing is to "row normalize" the eigenvector matrix before running k-means.
+
+```{r}
+load(url("http://pages.stat.wisc.edu/~karlrohe/netsci/data/zipA.RData"))  # we can do this with the full graph (i.e. we don't need to preprocess into the k-core.)
+deg = rowSums(A)
+D2= Diagonal(nrow(A), 1/sqrt(deg + 1))
+Lsym = D2%*%A%*%D2
+RegVec = eigs(Lsym, 10)$vectors
+qqnorm(scale(RegVec[,3])); abline(0,1)
+plot(deg, RegVec[,4], main = "eigenvector of L_{sym} vs degree")
+plot(deg, D2%*%RegVec[,4], main = "eigenvector of L_{rw} vs degree")
+```
+
+So, when we include regularization, we can include the whole graph, we don't need to study the k-core.  I think of these as two ways of improving the conditioning of $D$.  
+
+
+```{r}
+k =10
+RwRegSpec = kmeans(D2%*%RegVec, k, nstart = 20)
+sort(table(RwRegSpec$cluster))
+```
+Interestingly, we get much more balanced clusters if we row normalize the eigenvector matrix with it's row lengths instead of $D^{1/2}$.  That is, replace each row $x_i \in R^k$ of the $n \times k$ matrix with $x_i/\|x_i\|_2$.  On this row normalized matrix, run kmeans.
+```{r}
+NormRegVec = t(apply(RegVec, 1, function(x) return(x/sqrt(sum(x^2)))))
+RegSpec = kmeans(NormRegVec, k, nstart = 20)
+sort(table(RegSpec$cluster))
+```
+Can we just do this to $A$?  [An alternative approach called SCORE](http://arxiv.org/abs/1211.5803) normalizes the eigenvectors from the adjacency matrix by the first eigenvector of the adjacency matrix.  
+```{r}
+vecA = eigs(A,k)$vec
+scoreVecA = t(apply(vecA, 1, function(x) return(x[-1]/x[1])))
+score = kmeans(scoreVecA, k, nstart = 20)
+sort(table(score$cluster))
+```
+The literal algorithm in that paper does not work well. However, if we normalize the eigenvector matrix by the row sums, then it works very well.
+```{r}
+vecA = eigs(A,k)$vec
+NormVecA = t(apply(vecA, 1, function(x) return(x/sqrt(sum(x^2)))))
+NormSpecA = kmeans(NormVecA, k, nstart = 20)
+sort(table(NormSpecA$cluster))
+```
+
+#What have we learned?
+1) The eigenvectors of any of the above matrices are highly kurtotic.  
+2) The "tail nodes" in the eigenvectors could be the high degree nodes (i.e. with $A$).  Or, they could be the low degree nodes (i.e. with $L_{sym}$). 
+3) Alternatively, the eigenvectors of $L_{rw}$ appear unrelated to the node degree . . . so long as (i) you are only using the k-core or (ii) you have regularized. 
+4)  In the end, the best thing is to row normalize the eigenvector matrix of $A$ or  $L_{sym}$ (using regularization!).  This normalization step was first proposed by [AY Ng, MI Jordan, Y Weiss in NIPS 2002](http://machinelearning.wustl.edu/mlpapers/paper_files/nips02-AA35.pdf).  This is a hugely cited paper.  [Ng is now the chief scientist at Baidu](https://en.wikipedia.org/wiki/Andrew_Ng) (i.e. chinese google).  
+5) Regularization really helps.  In fact, [two graduate students made billions of dollars]((http://ilpubs.stanford.edu:8090/361/1/1998-8.pdf)) by [adding that one weird trick](http://ilpubs.stanford.edu:8090/422/1/1999-66.pdf). 
+
+Let's see how the clusters look on the map.  Because it is difficult to parse 10 different colors on the map, I will also plot the convex hull of each cluster.  The code for this is in the .Rmd document (not printed in the .html version).  I stole that code from [here](https://chitchatr.wordpress.com/2011/12/30/convex-hull-around-scatter-plot-in-r/).
+
+```{r include = FALSE}
+# This is copy pasted from https://chitchatr.wordpress.com/2011/12/30/convex-hull-around-scatter-plot-in-r/
+### Plotting function to plot convex hulls
+### Filename: Plot_ConvexHull.R
+### Notes:
+############################################################################
+ 
+# INPUTS:
+# xcoords: x-coordinates of point data
+# ycoords: y-coordinates of point data
+# lcolor: line color
+ 
+# OUTPUTS:
+# convex hull around data points in a particular color (specified by lcolor)
+ 
+# FUNCTION:
+Plot_ConvexHull<-function(xcoord, ycoord, lcolor, thick=1){
+  hpts <- chull(x = xcoord, y = ycoord)
+  hpts <- c(hpts, hpts[1])
+  lines(xcoord[hpts], ycoord[hpts], col = lcolor, lwd = thick)
+}  
+# END OF FUNCTION
+```
+
+
+```{r}
+library(maps)
+library(grDevices)
+spectralClustering = function(g, k){
+  A = get.adjacency(g, attr = "weight")
+  D = Diagonal(n = nrow(A), 1/sqrt(degree(g) + mean(degree(g))))
+  L = D%*%A%*%D
+  X = eigs(L,k)$vec
+  X = t(apply(X, 1, function(x) return(x/sqrt(sum(x^2)))))
+  return(kmeans(X, k, nstart = 20))
+  }
+spec = spectralClustering(g, 10)
+loc = as.matrix(loc)
+plot(rnorm(loc[,1],loc[,1],.1),rnorm(loc[,2],loc[,2],.1), col=as.factor(spec$cluster),
+     xlim = c(-125, -65), ylim = c(24, 50), pch  ='.')
+map('state', add = T) 
+# draw a polygon around the convex hull of the first 10 clusters.
+good = complete.cases(loc)
+comploc = loc[good,]
+for(i in 1:10){
+  i = i+1
+  inclust = which(spec$cluster[good] ==i)
+  Plot_ConvexHull(xcoord = comploc[inclust,1], ycoord = comploc[inclust,2],lcolor = "red")
+}
+
+```
+I've only plotted the lower 48 states, but the analysis includes everything else too.  Perhaps 10 is not enough clusters.  There is precedent for using 250 clusters.  
+
+
+```{r}
+spec = spectralClustering(g, 250)
+loc = as.matrix(loc)
+plot(rnorm(loc[,1],loc[,1],.1),rnorm(loc[,2],loc[,2],.1), col=as.factor(spec$cluster),
+     xlim = c(-125, -65), ylim = c(24, 50), pch  ='.')
+map('state', add = T) 
+
+good = complete.cases(loc)
+comploc = loc[good,]
+for(i in 1:250){
+  i = i+1
+  inclust = which(spec$cluster[good] ==i)
+  Plot_ConvexHull(xcoord = comploc[inclust,1], ycoord = comploc[inclust,2],lcolor = "red")
+}
+```
+Those clusters are not geographically coherent!  This could be due to messy data, people traveling, or the fact that laboratories and radiologists can work remotely.  In the next lecture, we will talk about a way to "fix" this without having to identify the exact cause of this lack of geographic coherence.
+
+
+For more on spectral clustering, see  [von Luxburg's tutorial](http://www.kyb.mpg.de/fileadmin/user_upload/files/publications/attachments/Luxburg07_tutorial_4488%5b0%5d.pdf).  That tutorial mostly considers situations where you must first learn the graph from euclidean data; that is not the setting of these notes or this class.  However, much still applies. 
+
+
+
+
+

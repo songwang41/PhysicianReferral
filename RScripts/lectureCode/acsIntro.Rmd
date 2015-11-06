@@ -1,0 +1,59 @@
+## Link with the American Community Survey (ACS)
+
+First, you must download your "key" [here](http://api.census.gov/data/key_signup.html).  They key is a 40 character string. In the background of this document, I have set my key to the variable acsKey. 
+
+```{r include = FALSE }
+source('~/Dropbox/code/rlib.R')  # this loads my acs key with 
+
+```
+
+The library acs will allow us to download data from R. The library choroplethr is super fancy for plotting.
+
+```{r}
+library(acs)
+library(choroplethr)
+library(choroplethrMaps)
+acsKey="26db2148a5d7e0b88c5eca5c4306cbb8e6d90d47"
+api.key.install(key = acsKey)   
+```
+
+
+ACS has lots of different variables.  To look up the variables you want, use web search!  I like [this site](https://www.socialexplorer.com/data/ACS2009_5yr/metadata/?ds=ACS09_5yr)  (you might need to be on campus or use proxy server to access that site).  The tableid is the thing you need to catch.  For example, tableid B00001 is [total population](https://www.socialexplorer.com/data/ACS2009_5yr/metadata/?ds=American+Community+Survey+Tables%3A++2005+--+2009+%285-Year+Estimates%29&table=B00001). choroplethr makes nice maps:
+
+```{r cache = T}
+state_choropleth_acs(tableId="B00001", endyear = 2011, span = 5, num_colors = 7,
+  zoom = NULL)
+county_choropleth_acs(tableId="B00001", endyear = 2011, span = 5, num_colors = 7,
+  state_zoom = NULL, county_zoom = NULL)
+```
+To access the data, you need to define the geographic region of interest (with geo.make); here it is zip code, can also use counties, states, census tracts, etc.  Then, you need to fetch the data (with acs.fetch). Make sure you are connected to the internet.
+
+```{r cache =TRUE}
+us.zip=geo.make(zip.code = "*")
+str(us.zip)
+us.transport=acs.fetch(geography=us.zip, 
+                         table.number="B08301", col.names="pretty")
+str(us.transport)
+```
+
+Notice that both of those previous objects are not standard R types. To get point estimates that are structured like a matrix (this is what we will typically want), use the function estimate.
+
+```{r cache =TRUE}
+trans = estimate(us.transport) # get the data into a matrix.
+is.matrix(trans)
+str(trans)
+dim(trans)
+head(trans)
+```
+See [the data description here](https://www.socialexplorer.com/data/ACS2009_5yr/metadata/?ds=American+Community+Survey+Tables%3A++2005+--+2009+%285-Year+Estimates%29&table=B08006).
+
+You can plot the data and see that it has a super long tail.  
+```{r cache = TRUE}
+trans = trans[,c(3,4,10,17,18,19)]
+hist(trans[,1])  
+# fat tails!  
+plot(as.data.frame(trans))  # tails make it hard to see patterns. 
+# transform:
+plot(as.data.frame(log(trans)))  # why is everything correlated?
+```
+

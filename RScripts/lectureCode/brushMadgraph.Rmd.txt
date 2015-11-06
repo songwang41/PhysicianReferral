@@ -1,0 +1,47 @@
+## Save the madgraph to do brushing with iplots.
+
+To illustrate the data, focus on Madison.
+
+```{r cache=TRUE}
+source("http://pages.stat.wisc.edu/~karlrohe/netsci/code/loadData.R")
+
+wi = DT[State == "WI"]
+tmp = Et[unique(wi$NPI)]  
+Ewi = tmp[complete.cases(tmp)]  #lots of NA's.  Have not inspected why.
+el=as.matrix(Ewi)[,1:2] #igraph needs the edgelist to be in matrix format
+g=graph.edgelist(el,directed = F) # this creates a graph.
+ids = V(g)$name
+cities = wi[ids, mult = "first"]$City
+g = set.vertex.attribute(g, name = "city", index=V(g),value =  cities)
+wig = g
+madgraph = induced.subgraph(graph = g,vids = which(V(g)$city == "MADISON"))
+core = graph.coreness(madgraph)
+madgraph = induced.subgraph(graph = madgraph,vids = core>1)
+plot(madgraph, vertex.label = NA)
+```
+
+Let's color the nodes in this figure by some other interesting attributes in DT. 
+
+```{r cache=TRUE}
+colnames(DT)
+features = colnames(DT)[c(8:12, 18,19, 21, 28)]
+features
+ids = V(madgraph)$name
+tmp = wi[ids, mult = "last"]
+atbs = tmp[,features, with = F]  # Thank you google for helping to find "with"
+mean(complete.cases(atbs))
+atbs = as.matrix(atbs)
+for(i in 1:ncol(atbs)){
+madgraph = set.vertex.attribute(madgraph, name = colnames(atbs)[i], index=V(madgraph),value =  atbs[,i])
+}
+summary(madgraph)
+```
+
+Now, let's plot it with several different colorings.  The thing that takes the longest in plotting is computing the node locations (extensive field of algorithmic study!).
+
+```{r cache=TRUE}
+locs = layout.fruchterman.reingold(madgraph)
+madStuff = cbind(locs, atbs)
+save(madStuff, file = "~/dataFiles/physicianReferral/madStuff.RData")
+```
+

@@ -3,18 +3,11 @@
 To illustrate the data, focus on Madison.
 
 ```{r cache=TRUE}
-##############
-rm(list=ls())
-setwd("~/Stat/Physician_Referral_Network/RScripts/")
-DataPath <- "../Data/"
-ResultsPath <- "../Results/"
-PlotsPath <- "../Plots/"
+source("http://pages.stat.wisc.edu/~karlrohe/netsci/code/loadData.R")
 
-
-system.time(load(paste0(DataPath, "EtDT.RData")))
 mad = DT[City == "MADISON"]
-tmp = Et[unique(mad$NPI)]                        # so cool! and fast!
-Emad = tmp[complete.cases(tmp)]                  #lots of NA's.  Have not inspected why.
+tmp = Et[unique(mad$NPI)]  # so cool! and fast!
+Emad = tmp[complete.cases(tmp)]  #lots of NA's.  Have not inspected why.
 el=as.matrix(Emad)[,1:2] #igraph needs the edgelist to be in matrix format
 g=graph.edgelist(el,directed = F) # this creates a graph.
 # original graph is directed.  For now, ignore direction.

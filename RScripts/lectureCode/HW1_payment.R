@@ -28,7 +28,7 @@ Payment_SF <- Payment[NPI %in% NPI_SF$NPI,mult="first"]
 
 high <- quantile(Payment_SF$totalPay,probs = 0.90) 
 high_medium <- quantile(Payment_SF$totalPay,probs = 0.70) 
-
+for()
 boxplot(Payment$totalPay[Payment$totalPay<high])
 ## DT physician features for each NPI
 ## Et physician referral
@@ -38,15 +38,4 @@ unique(Payment$nppes_credentials)
 unique(Payment$nppes_entity_code) # I/O
 unique(Payment$provider_type) # 90 levels
 # gender, address1, address2, city, zip(9), state, country, type#
-
-
-
-sqlite> .read try.sql
-15981.2581234672|3.36102652702931
-
-sqlite> .read try.sql
-22643443640.2631 - 421570 *15981.2581234672*3.36102652702931
-
-sqlite> .read try.sql
-421570
         

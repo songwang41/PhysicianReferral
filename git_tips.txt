@@ -24,9 +24,11 @@ routine;
 git remote add <name> <url>
 https://github.com/snandi/RScripts_Kaggle_Caterpillar
 
-git status 
 
-git checkout 
-git commit -m " ,,,fdjfjdf "
 
-git push 
+git pull origin master
+git add -A
+git status
+git commit -m" this is doing what -- message"
+git push origin master
+

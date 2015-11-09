@@ -56,11 +56,7 @@ for(hsa in names(Networks_Hsa) ){
 }
 
 write.csv(Net_Hsa_features,file= paste0(DataPath,"Net_Hsa_Features.csv"), row.names = F)
-clustCoef <- function(g){
-  if (vcount(g)< 5000){
-    
-  }
-}
+
 
 
 

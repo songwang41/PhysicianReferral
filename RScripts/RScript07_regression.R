@@ -99,7 +99,8 @@ par(mfcol=c(2,2))
 plot(step)
 dev.off()
 
-
+step <- stepAIC(lm1, direction="both",k=log(nrow(t3)))
+summary(step)
 
 # Coefficients:
 #   Estimate Std. Error t value Pr(>|t|)    
@@ -123,8 +124,21 @@ dev.off()
 # Registered_nerses_ratio   8.901e-02  3.044e-02   2.924 0.003489 ** 
 #   Hospital_Employees_ratio -2.177e-02  7.500e-03  -2.902 0.003738 ** 
 #   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+# BIC
 # 
-# Residual standard error: 1.109 on 2238 degrees of freedom
-# Multiple R-squared:  0.6797,  Adjusted R-squared:  0.6771 
-# F-statistic: 263.8 on 18 and 2238 DF,  p-value: < 2.2e-16
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)            5.070e+00  3.255e-01  15.574  < 2e-16 ***
+#   edgeDensity           -2.211e+00  1.874e-01 -11.800  < 2e-16 ***
+#   degMean                2.597e-02  4.661e-03   5.571 2.84e-08 ***
+#   degSD                  1.994e-02  4.671e-03   4.270 2.04e-05 ***
+#   vcount                 1.771e-03  1.761e-04  10.057  < 2e-16 ***
+#   ecount                -8.589e-05  6.770e-06 -12.688  < 2e-16 ***
+#   localClustCoef         7.651e-01  2.143e-01   3.571 0.000363 ***
+#   AvgAnnualVisit         1.136e-02  2.895e-03   3.923 9.02e-05 ***
+#   enrolle2               3.186e-05  4.457e-06   7.148 1.18e-12 ***
+#   skill_nursing          1.194e-04  3.049e-05   3.916 9.27e-05 ***
+#   ReimbursePerEnrollee1  4.562e-04  5.532e-05   8.248 2.72e-16 ***
+#   ReimbursePerEnrollee2 -3.941e-04  7.117e-05  -5.537 3.43e-08 ***

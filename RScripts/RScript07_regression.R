@@ -10,8 +10,8 @@ PlotsPath <- "./Plots/"
 
 
 
-total<-fread("./Data/regression/totalAllowedPay.csv",header=T)
-variable<-fread("./Data/regression/variables.csv",header=T)
+totalPay <- fread("./Data/regression/totalAllowedPay.csv",header=T)
+variable <- fread("./Data/regression/variables.csv",header=T)
 variable <- variable[,c(-1,-3),with=F] # remove row.names, HSA names
 
 
@@ -40,20 +40,20 @@ names(variable) <- c("HSA","enrollees","Mortality","Mortality2","Nbeneficiaries"
 
 network<-fread("./Data/regression/Net_Hsa_Features.csv",header=T)
 
-pos<-match(total$Group.1,network$HSA)
+pos<-match(totalPay$Group.1,network$HSA)
 which((is.na(pos)))  
-#[1] 201 543 869   ## HSA in total, but not in network $HSA
+#[1] 201 543 869   ## HSA in totalPay, but not in network $HSA
 name1 <- names(network)[-1]
 for(i in 1:length(total$Group.1)){
-  total[i,name1]=network[pos[i],2:11,with=F]
+  totalPay[i,name1]=network[pos[i],2:11,with=F]
 }
 name2<- names(variable)[-1]
-pos2<-match(total$Group.1,variable$HSA)
-for(j in 1:length(total$Group.1)){
-  total[j,name2]=variable[pos2[j],2:16,with=F]
+pos2<-match(totalPay$Group.1,variable$HSA)
+for(j in 1:length(totalPay$Group.1)){
+  totalPay[j,name2]=variable[pos2[j],2:16,with=F]
 }
 
-t1<-total
+t1<-totalPay
 factortonumeric <- function(x){
   if(!is.numeric(x) ){ x <- as.numeric(x)}
   return(x)
@@ -85,7 +85,7 @@ t3<-data.frame(t3)
 row.names(t3)<-t3$Group.1
 t3 <- t3[,-c(1,2)]
 names(t3)[1] <- "TotalAllowedPayment"
-t3
+str(t3)
 
 
 # log transformation on payment
@@ -99,6 +99,7 @@ par(mfcol=c(2,2))
 plot(step)
 dev.off()
 
+#BIC
 step <- stepAIC(lm1, direction="both",k=log(nrow(t3)))
 summary(step)
 

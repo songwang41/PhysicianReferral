@@ -26,3 +26,6 @@ save them into two .csv files -- "Net_Hsa_Features.csv"
 
 Script06: calculate all the network features that we are interested in. 
 save them into two .csv files -- "Net_Hrr_Features.csv
+
+Script07: combine the totalPay, hsa variables, network features.
+build a regression based on model selection, back/forward selection.

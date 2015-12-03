@@ -1,0 +1,29 @@
+---
+title: "ProceedingNotes"
+author: "Song Wang"
+date: "December 3, 2015"
+output: html_document
+---
+
+This is schatch node showsing the big picture of what's going on with our project.
+
+
+### Response variable : 
+For a certain service,
+submit amount for each hospital 
+
+### The model to be considered :
+
+submit amount for each hospital 
+
+= $\beta_1$ hopstal level features + $\beta_2$ HSA level features + $\beta_3$ HSA-level network features.
+
+
+### works to be done 
+
+1) background ( why allowed amount is not good, what modeling submit amount is meaninful, solving what issues)
+
+2) Ruosi, we need to get a data set about Hopital level variables / HSA levels (could be fewer may 10 meaningful ones)
+
+3) I want to try something on network analysis -- particularly, to see whether the network strucure has changes from 2012 to 2014. 
+   I will build a set-up for the model, put these three types of variables. So that once we have the better, we just plug them in.

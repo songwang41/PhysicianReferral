@@ -113,6 +113,7 @@ plot(loc1[,2],loc1[,1], pch="1",col="red", xlim= c(-125, -70), ylim= c(23,50),
      xlab = "longitude", ylab ="latitude")
 title(main="physisians in USA referred from San Francisco",cex.main=0.8)
 map(database = 'world', region = c('usa'),fill=F, add = T)
+
 ```
 Finding, There are a lot long-distance referrals going on. They are difficult to explain. Even after I already restricted the both nodes in the referral network to be in San Francisco. some doctors may have two or multiple billing address. Also maybe one year 365 time window is too big. reduced the time window may help.
 

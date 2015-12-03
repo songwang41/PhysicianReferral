@@ -1,0 +1,10 @@
+Notes:
+
+one particular service
+
+At hopital level for a particular service 
+
+physician related to this service  (vetted out a lot of physician)
+
+
+submit_amount <- f(hospital variates , regional covariates, network characterics)

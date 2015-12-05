@@ -17,7 +17,7 @@ PlotsPath <- "../Plots/"
 ## 2012 data set  ## nrow = 73 M , ncol =5, 
 ## length(unique(Et$V1))  #1004294
 ## length(unique(Et$V2))  #1011848
-Et = fread(paste0(DataPath, 
+refer2012 = fread(paste0(DataPath, 
         "Physician-referrals/Physician-Referrals-2012-2013-DAYS30.txt"),
          colClasses = c("character", "character","numeric", "numeric", "numeric"))
 
@@ -32,9 +32,6 @@ head(Et)
 # 4: 1000000004 1376577247 31         20         21
 # 5: 1000000004 1790775229 54         44         47
 # 6: 1000000004 1558653212 20         11          9
-
-
-
 
 
 ### 2013 data set, the newest version is 2015 now.
@@ -68,6 +65,8 @@ Payment <- read.xlsx(filename, sheet = 1, startRow = 2, colNames = TRUE)
 charges<- cbind(Payment$average_submitted_chrg_amt,
                 Payment$average_Medicare_allowed_amt,Payment$average_Medicare_payment_amt)
 names(charges) <- c("average_submitted_chrg_amt","average_Medicare_allowed_amt","average_Medicare_payment_amt")
+
+
 
 
 save(DT,Et, file = paste0(DataPath, "EtDT2013.RData"))

@@ -8,7 +8,7 @@
 
 library(data.table)  
 #library(igraph)  
-setwd("getwd()""/afs/cs.wisc.edu/u/s/o/songwang/Stat/Physician_Referral_Network")
+setwd("~/Stat/Physician_Referral_Network")
 RSciptPath <- "./RScripts/"
 DataPath <- "./Data/"
 ResultsPath <- "./Results/"
@@ -36,13 +36,13 @@ DT1$HRR <- ZipHsaHrr[zipcode,'hrrnum']
 
 
 # partition the graph based on HSA number or HRR number
-length(DT1$NPI) #1915056
+length(DT1$NPI)         #1915056
 length(unique(DT1$NPI)) # 800923, on average, each physician has two billing address
 
 freq_npi <- table(DT1$NPI)
 names ( which(freq_npi == max(freq_npi))   )
 data <- DT1[NPI == "1760561781",]  
-data[,c(`City`,'State',`Zip Code`)]
+data[,.(`City`,`State`,`Zip Code`)]
 sum(freq_npi>1)
 ## some physician has hundreds of zipcodes, we assign the hosptial region of this
 # eg. 1760561781 559 lines
@@ -63,8 +63,9 @@ NpiHsaHrr[singlenpi,] <- DT1[singlenpi,.(NPI,HSA,HRR)]  # reduced half of the lo
 npi_multi <- names(freq_npi[freq_npi>1])
 # to narrow down the range of NPI's. looked at payment 
 
-library(foreach)
-library(doParallel)
+
+library(foreach) 
+library(doParallel)    # copy data set is way too slow
 # cl <- makeCluster(10)
 # registerDoParallel(cl)
 # 
@@ -80,20 +81,20 @@ library(doParallel)
 # print(Sys.time() - strt)
 # stopCluster(cl)
 # ls
-cl <- makeCluster(10)
-registerDoParallel(cl)
-strt <- Sys.time()
-npihsahrr <- foreach(npi = npi_multi[1:100]) %dopar%{
-  data <- DT1[npi]
-  freq_hsa <- table(data$HSA)
-  hsanum<- as.numeric(names(which(freq_hsa==max(freq_hsa))[1]))
-  freq_hrr <- table(data$HRR)
-  hrrnum <- as.numeric(names(which(freq_hrr==max(freq_hrr))[1]))
-  a<- c(npi,hsanum, hrrnum)
-  a
-}
-print(Sys.time() - strt)
-stopCluster(cl)
+# cl <- makeCluster(10)
+# registerDoParallel(cl)
+# strt <- Sys.time()
+# npihsahrr <- foreach(npi = npi_multi[1:100]) %dopar%{
+#   data <- DT1[npi]
+#   freq_hsa <- table(data$HSA)
+#   hsanum<- as.numeric(names(which(freq_hsa==max(freq_hsa))[1]))
+#   freq_hrr <- table(data$HRR)
+#   hrrnum <- as.numeric(names(which(freq_hrr==max(freq_hrr))[1]))
+#   a<- c(npi,hsanum, hrrnum)
+#   a
+# }
+# print(Sys.time() - strt)
+# stopCluster(cl)
 
 for ( npi in npi_multi[1:1000]){ 
     data <- DT1[npi]
@@ -113,6 +114,7 @@ for( hsa in unique(NpiHsaHrr$Hsanum) ){
 }
 
 save(Network_Hsa, file = paste0(DataPath,"Network_Hsa.RData"))
+
 Networks_Hrr <- list()
 for( hrr in unique(NpiHsaHrr$Hrrnum) ){
   npis <- as.character(NpiHsaHrr[NpiHsaHrr$Hrrnum==hrr,]$NPI)

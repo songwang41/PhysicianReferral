@@ -1,0 +1,31 @@
+
+
+Script01: first file will read in the following data sets:
+      referral, payment, acs
+save them as .RData for future use    
+
+Script02:  based on national referral network, 
+american community survey provides the billing Zipcode for physicians
+This is script will be used to generate a lot of small network at the HSA level
+
+Generate -- using paprallel not save time. because copying file every time. 
+NpiHsaHrr.RData -- each HSA, its network features
+Network_Hrr.RData
+
+Script03 - Script04, 
+avoiding copy the big data file, I copy the code multiple times, 39 pieces on 39 terminals to create the 
+table npi, hsa_id, hrr_id, for 10,000 npis each.
+Combining the individual result, creat the whole matrix  with npi, hsa, hrr
+NpiHsaHrr.RData -- npi, hsa_id, hrr_id
+Network_Hsa.RData -- hsa-based networks, 
+Network_Hrr.RData -- hrr_based networks.
+
+
+Script05: calculate all the network features that we are interested in. 
+save them into two .csv files -- "Net_Hsa_Features.csv"
+
+Script06: calculate all the network features that we are interested in. 
+save them into two .csv files -- "Net_Hrr_Features.csv
+
+Script07: combine the totalPay, hsa variables, network features.
+build a regression based on model selection, back/forward selection.

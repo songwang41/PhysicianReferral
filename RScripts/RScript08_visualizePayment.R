@@ -6,7 +6,7 @@ load("./Data/Payment_a_2013.RData")
 PaymentRed <- Payment[,c("npi","nppes_provider_zip","average_submitted_chrg_amt",
                                "average_Medicare_allowed_amt","average_Medicare_payment_amt")]
 system.time(sample(nrow(PaymentRed),1000))
-plot(PaymentRed[sample(nrow(PaymentRed),1000),3:5])
+plot( PaymentRed[sample(nrow(PaymentRed),1000), 3:5] )
 
 ## payment = 0.8 * allowed_amount
 

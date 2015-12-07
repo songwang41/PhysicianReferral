@@ -84,7 +84,7 @@ save(Payment2012Cataract, file="./Data/Payment2012Cataract66984.RData")
 
 
 desp <- unique(Payment2012$HCPCS_DESCRIPTION)
-eyedisease <- desp[grep(pattern="eye",desp)]
+eyedisease <- desp[grep(pattern="eye", desp)]
 # 213
 
 

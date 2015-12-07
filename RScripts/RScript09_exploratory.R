@@ -1,4 +1,9 @@
 
+
+
+
+load("./Data/Payment2012Cataract66984.RData")
+
 Payment2012_wi <- subset( Payment2012Cataract, NPPES_PROVIDER_STATE=="WI")
 for(i in 20:28){
   Payment2012_wi[,i] <- as.numeric(Payment2012_wi[,i])

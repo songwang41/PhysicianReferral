@@ -48,7 +48,7 @@ for(hsa in names(Networks_Hsa) ){
   Net_Hsa_features[hsa,'degSD'] <- sd( degree(g) )
   Net_Hsa_features[hsa,'vcount'] <- vc
   Net_Hsa_features[hsa,'ecount'] <- ec 
-  Net_Hsa_features[hsa,'closeness'] <- mean(closeness(g))
+  Net_Hsa_features[hsa,'betweenness'] <- mean(betweenness(g))
   Net_Hsa_features[hsa,'edgeBetweenness'] <- mean(edge.betweenness(g))
   Net_Hsa_features[hsa,'transivity'] <- transitivity(g)
   Net_Hsa_features[hsa,'localClustCoef'] <- mean(transitivity(g,"local"),na.rm = T)

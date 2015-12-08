@@ -15,7 +15,7 @@ NpiHsaHrr0$NPI <-  as.character( unique(DT1$NPI) )
 NpiHsaHrr0$Hsanum <- numeric(length(unique(DT1$NPI)))
 NpiHsaHrr0$Hrrnum <- numeric(length(unique(DT1$NPI)))
 NpiHsaHrr0 <- data.frame(NpiHsaHrr0)
-NpiHsaHrr0$NPI <- as.character(NpiHsaHrr0$NPI)
+
 row.names(NpiHsaHrr0) <-as.character( unique(DT1$NPI) )
 singlenpi <- names(which(freq_npi==1))
 singlenpi[1:10]
@@ -23,6 +23,7 @@ setkey(DT1,NPI)
 
 NpiHsaHrr0[singlenpi,] <- DT1[singlenpi,.(NPI,HSA,HRR)]  # reduced half of the loops
 npi_multi <- names(freq_npi[freq_npi>1])
+
 for(k in 0:39){
   load(paste0(DataPath,"subNetwork/NpiHsaHrr_",k,".RData"))
   npi <- as.character(NpiHsaHrr$NPI)

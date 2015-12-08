@@ -1,32 +1,28 @@
 
+library(data.table)  
+library(igraph)  
+#library(sna)
+setwd("~/Stat/Physician_Referral_Network")
+RSciptPath <- "./RScripts/"
+DataPath <- "./Data/"
+ResultsPath <- "./Results/"
+PlotsPath <- "./Plots/"
 
 # calculate the ego-network contrained to some region
 
 
 load("./Data/Payment2012Cataract66984.RData")
-
+Payment2012Cataract <- as.data.table(Payment2012Cataract)
 setkey(Payment2012Cataract,NPI)
 table(Payment2012Cataract$PROVIDER_TYPE,Payment2012Cataract$NPPES_ENTITY_CODE)
-#                                       I     O
-# Ambulatory Surgical Center            0  1902
-# Clinical Laboratory                   0     2
-# Emergency Medicine                    1     0
-# Family Practice                       5     0
-# General Surgery                       2     0
-# Hospice and Palliative Care           1     0
-# Internal Medicine                     5     0
-# Neurology                             1     0
-# Obstetrics/Gynecology                 1     0
-# Ophthalmology                     10093     1
-# Optometry                          5164     1
-# Osteopathic Manipulative Medicine     2     0
-# Otolaryngology                        7     0
-# Pathology                             1     0
+# very concentrate
+
 
 length(Payment2012Cataract$NPI)
 length(unique(Payment2012Cataract$NPI))
 npiCount <- table(Payment2012Cataract$NPI)
 max(npiCount) ##=2
+
 Payment2012Cataract["1003805995"]
 table(Payment2012Cataract$PLACE_OF_SERVICE)
 Pay_2place <- Payment2012Cataract[names(which(npiCount>1))]
@@ -60,43 +56,41 @@ a=0
 for(hrr in unique(NpiHsaHrr$Hrrnum)){
   cluster_hrr <- as.character(subset(NpiHsaHrr,Hrrnum==hrr)$NPI)
   #a <- a+length(cluster_hrr)
-  clusters[[as.character(hrr)]] <- cluster_hrr[!is.na(match(cluster_hrr,npis))]
+  match
+  clusters[[as.character(hrr)]] <- npis[which(npis%in%cluster_hrr)]
   a <- a +length(clusters[[as.character(hrr)]])
 }
-
+a  # 12728
 ### Calculate the ego network characteristics
 
-library(foreach)
-library(doParallel)
-library(igraph)
+
+
 
 load("./Data/Network_Hrr.RData")
 
+features <- c("NPI", "indegree", "betweenCentrality","pgRank")
+EgoNetwork <- data.frame(matrix(0,nrow(FinalData),length(features)))
+names(EgoNetwork) <- features
+row.names(EgoNetwork) <- FinalData$NPI
+EgoNetwork$NPI <- FinalData$NPI
 
-EgoNetwork <- list()
-indegree <- data.frame(matrix(0,nrow(FinalData),3))
-row.names(indegree) <- FinalData$NPI
 for( hrr in names(clusters)){
-  if (length(clusters[[hrr]])>0){
-    egoGraph <- graph.data.frame(Networks_Hrr[[hrr]][,.(V1,V2)])
-    Degin <- degree(egoGraph)
-    vcount(egoGraph)
-    for(npi in clusters[[hrr]] ){
-      indegree[npi,2] <- as.numeric(hrr)
-      indegree[npi,1] <- Degin[npi]
-      cat(Degin[npi],"\n")
+   if (length(clusters[[hrr]])>0){
+    egoGraph <- graph.data.frame(Networks_Hrr[[hrr]][,.(V1,V2,V3)])
+    Degin <- degree(egoGraph, mode ="in")
+    vcount <- vcount(egoGraph)
+    between <- betweenness(egoGraph)/((vcount-1)*(vcount-2)/2)
+    pgRank <- page.rank (egoGraph)$vector
+    cluster_hrr <- clusters[[hrr]][!is.na(match(clusters[[hrr]],names(V(egoGraph)) ))]
+    for(npi in cluster_hrr ){
+      EgoNetwork[npi,2] <- Degin[npi]
+      EgoNetwork[npi,3] <- between[npi]
+      EgoNetwork[npi,4] <- pgRank[npi]
+      cat(hrr,"npi =", npi, " " ,Degin[npi],"\n")
     }  
   }
 }
-
-
-
-
-load("./Data/Network_Hrr.RData")
-a <-  FinalData$NPI[1]
-hrrnum <- as.character(NpiHsaHrr[a,][3])
-egoNet <- Networks_Hrr[[hrrnum]]
-egoGraph <- graph.data.frame(egoNet[,1:2,with=F],directed = T)
-V(egoGraph)
-hist(degree(egoGraph))
+save(EgoNetwork, file = paste0(DataPath,"EgoNetwork.RData"))
+write.csv(EgoNetwork, file = paste0(DataPath,"EgoNetwork.csv"))
+hist(log(indegree$X1+1), breaks =50)
   

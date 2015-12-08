@@ -15,6 +15,7 @@ PlotsPath <- "./Plots/"
 load(paste0(DataPath,"DT1.RData")) ## loading referral and ACS data set\
 freq_npi <- table(DT1$NPI)
 npi_multi <- as.character(names(freq_npi[freq_npi>1]))
+# 391135, have multiple occurrences
 npis <- npi_multi[(k*10000+1):(min(length(npi_multi),(1+k)*10000))]
 
 NpiHsaHrr<- list()

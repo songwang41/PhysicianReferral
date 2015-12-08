@@ -1,3 +1,4 @@
+rm(list=ls())
 library(data.table)  
 library(igraph)  
 #library(sna)
@@ -79,43 +80,40 @@ zipHrr <- read.csv("./Data/ZipHsaHrr12.csv")
 
 names(zipHrr)
 zipHrr[which(zipHrr$zipcode12 =="53706"),]
-zipHrr[which(zipHrr$hsastate == "WI"),]
-#         zipcode12 hsanum hsacity hsastate hrrnum hrrcity hrrstate
-# 22256     53706  52048 Madison       WI    449 Madison       WI
+
 NPI_mad <- NpiHsaHrr$NPI[which(NpiHsaHrr$Hrrnum==449)]
 setkey(FinalData1,NPI)
+
+
 FinalData1_mad<-FinalData1[NPI_mad]
+plot(FinalData1_mad[,.(AVERAGE_SUBMITTED_CHRG_AMT,indegree,pgRank,Centrality)])
+     
+load("./Data/finalMerged.RData") 
+merged <- data.table(merged)
+setkey(merged,NPI)
+merged_mad<-merged[NPI_mad]
+plot(merged_mad[,.(AVERAGE_SUBMITTED_CHRG_AMT,indegree,pgRank,Centrality)])
+     
 
-plot(FinalData1_mad$AVERAGE_SUBMITTED_CHRG_AMT~FinalData1_mad$indegree)
-plot(FinalData1_mad$AVERAGE_SUBMITTED_CHRG_AMT~FinalData1_mad$pgrank)
-plot(FinalData1_mad$AVERAGE_SUBMITTED_CHRG_AMT~FinalData1_mad$Centrality)
 
-plot(FinalData1_mad[,.(AVERAGE_SUBMITTED_CHRG_AMT,indegree,pgrank,Centrality)])
+######### wisconsin
+
+zipHrr <- read.csv("./Data/ZipHsaHrr12.csv")
+
+names(zipHrr)
+zipHrr[which(zipHrr$zipcode12 =="53706"),]
+zip_wi <- zipHrr[which(zipHrr$hrrstate == "WI"),]
+table(zip_wi$hrrnum)
+hrrs <- unique(zip_wi$hrrnum)
+
+NPI_wi <- NpiHsaHrr$NPI[which(NpiHsaHrr$Hrrnum%in%hrrs)]
+setkey(FinalData1,NPI)
+FinalData1_wi<-FinalData1[NPI_wi]
+
+plot(FinalData1_wi[,.(AVERAGE_SUBMITTED_CHRG_AMT,indegree,pgrank,Centrality)])
 
 
 
-
-
-load("./Data/merged.Rdata")  # merged
-load("./Data/acsDataFinal.Rdata") # acsDataFinal
-
-#acsDataFinal$NPPES_PROVIDER_ZIP <- as.numeric(acsDataFinal$NPPES_PROVIDER_ZIP)
-acsDataFinal <- as.data.table(acsDataFinal) 
-setkey(acsDataFinal, NPPES_PROVIDER_ZIP)
-names(acsDataFinal) [5] <- "ge65Total"
-names(acsDataFinal) [6] <- "ge65Poverty"
-# [1] "NPPES_PROVIDER_ZIP" "medianHHincome"     "medianGrossRent"    "nonWhite"          
-# [5] "65plusTotal"        "65plusPoverty"      "vetran65plus"  
-merged1 <-merged 
-merged$medianHHincome <- acsDataFinal[merged$NPPES_PROVIDER_ZIP,.(medianHHincome)]
-merged[["medianGrossRent"]] <-  
-     acsDataFinal[merged$NPPES_PROVIDER_ZIP,.(medianGrossRent)]
-merged[["nonWhite"]] <- acsDataFinal[merged$NPPES_PROVIDER_ZIP,.(nonWhite)]
-merged[["65plusTotal"]] <- acsDataFinal[merged$NPPES_PROVIDER_ZIP,.(ge65total)]
-
-merged[["65plusPoverty"]] <- acsDataFinal[merged$NPPES_PROVIDER_ZIP,.(ge65Poverty)]
-
-merged[["vetran65plus"]] <- acsDataFinal[merged$NPPES_PROVIDER_ZIP,"vetran65plus"]
 
 
 

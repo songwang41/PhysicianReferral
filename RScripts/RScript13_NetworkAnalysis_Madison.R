@@ -35,3 +35,5 @@ setkey(merged,NPI)
 merged_mad<-merged[NPI_mad]
 plot(merged_mad[,.(AVERAGE_SUBMITTED_CHRG_AMT,indegree,pgRank,Centrality)])
 
+
+

@@ -278,6 +278,12 @@ np
 -288.72 0 l
 0 -443.52 l
 o
+18.00 18.00 396.00 594.00 cl
+/Font2 findfont 8 s
+0 0 1 srgb
+145.39 561.61 (Summit Amount f) 0 ta
+-0.160 (or ph) tb
+-0.160 (ysicians with F/O) tb gr
 455.04 91.44 743.76 534.96 cl
 455.04 91.44 743.76 534.96 cl
 0 0 0 srgb
@@ -1535,6 +1541,12 @@ np
 -288.72 0 l
 0 -443.52 l
 o
+396.00 18.00 774.00 594.00 cl
+/Font2 findfont 8 s
+0 0 1 srgb
+534.72 561.61 (Summit Amount f) 0 ta
+-0.160 (or all ph) tb
+-0.160 (ysicians) tb gr
 ep
 %%Trailer
 %%Pages: 1

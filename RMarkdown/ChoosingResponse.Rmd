@@ -2,7 +2,7 @@
 title: "choosingReponse"
 author: "Song"
 date: "October 29, 2015"
-output: pdf_document
+output: md_document
 ---
 
 ```{r}

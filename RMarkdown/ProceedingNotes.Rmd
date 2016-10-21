@@ -2,7 +2,7 @@
 title: "ProceedingNotes"
 author: "Song Wang"
 date: "December 3, 2015"
-output: html_document
+output: md_document
 ---
 
 This is schatch node showsing the big picture of what's going on with our project.

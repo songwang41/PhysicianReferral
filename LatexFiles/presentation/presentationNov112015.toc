@@ -1,5 +1,0 @@
-\beamer@endinputifotherversion {3.33pt}
-\beamer@sectionintoc {1}{Introduction}{2}{0}{1}
-\beamer@sectionintoc {2}{Algorithm}{4}{0}{2}
-\beamer@subsectionintoc {2}{1}{Method 1}{4}{0}{2}
-\beamer@subsectionintoc {2}{2}{Results}{5}{0}{2}
